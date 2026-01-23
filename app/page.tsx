@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
+import { signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { Order, OrderStatus, EmailStatus } from "./types/order";
 
 // Helper function to convert R2 URL to proxy URL
@@ -111,6 +113,14 @@ const AlertCircleIcon = () => (
     <circle cx="12" cy="12" r="10" />
     <line x1="12" x2="12" y1="8" y2="12" />
     <line x1="12" x2="12.01" y1="16" y2="16" />
+  </svg>
+);
+
+const LogoutIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16 17 21 12 16 7" />
+    <line x1="21" x2="9" y1="12" y2="12" />
   </svg>
 );
 
@@ -557,6 +567,8 @@ function StatsCard({
 
 // Main Dashboard Component
 export default function OrderDashboard() {
+  const { data: session, status: sessionStatus } = useSession();
+  const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -569,6 +581,19 @@ export default function OrderDashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedEmailStatus, setSelectedEmailStatus] = useState<string>("all");
+
+  // Handle logout
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    router.push("/login");
+  };
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (sessionStatus === "unauthenticated") {
+      router.push("/login");
+    }
+  }, [sessionStatus, router]);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -808,6 +833,20 @@ export default function OrderDashboard() {
     }).format(price);
   };
 
+  // Show loading screen while checking session
+  if (sessionStatus === "loading") {
+    return (
+      <div className="min-h-screen bg-[var(--background)] flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-[var(--tedx-red)] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Don't render dashboard if not authenticated
+  if (sessionStatus === "unauthenticated") {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-[var(--background)]">
       {/* Header */}
@@ -826,14 +865,32 @@ export default function OrderDashboard() {
               <div className="hidden sm:block h-6 w-px bg-[var(--card-border)]" />
               <h1 className="hidden sm:block text-lg font-semibold text-white">Order Dashboard</h1>
             </div>
-            <button
-              onClick={fetchOrders}
-              disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--tedx-red)] hover:bg-[var(--tedx-red-dark)] disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
-            >
-              <RefreshIcon className={loading ? "animate-spin" : ""} />
-              <span className="hidden sm:inline">Refresh</span>
-            </button>
+            <div className="flex items-center gap-3">
+              {/* User Info */}
+              {session?.user?.email && (
+                <span className="hidden md:block text-sm text-zinc-400">
+                  {session.user.email}
+                </span>
+              )}
+              {/* Refresh Button */}
+              <button
+                onClick={fetchOrders}
+                disabled={loading}
+                className="flex items-center gap-2 px-4 py-2 bg-[var(--tedx-red)] hover:bg-[var(--tedx-red-dark)] disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+              >
+                <RefreshIcon className={loading ? "animate-spin" : ""} />
+                <span className="hidden sm:inline">Refresh</span>
+              </button>
+              {/* Logout Button */}
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg font-medium transition-colors"
+                title="Sign out"
+              >
+                <LogoutIcon />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -1025,10 +1082,10 @@ export default function OrderDashboard() {
                       <td className="px-4 py-4">
                         {order.status === 'accepted' ? (
                           <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${order.email?.status === 'sent'
-                              ? "bg-green-500/20 text-green-400"
-                              : order.email?.status === 'failed'
-                                ? "bg-red-500/20 text-red-400"
-                                : "bg-zinc-500/20 text-zinc-400"
+                            ? "bg-green-500/20 text-green-400"
+                            : order.email?.status === 'failed'
+                              ? "bg-red-500/20 text-red-400"
+                              : "bg-zinc-500/20 text-zinc-400"
                             }`}>
                             <MailIcon />
                             {order.email?.status === 'sent' ? "Sent" : order.email?.status === 'failed' ? "Failed" : "—"}

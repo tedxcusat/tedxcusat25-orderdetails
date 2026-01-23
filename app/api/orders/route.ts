@@ -29,20 +29,26 @@ export async function GET() {
         // Fetch each order JSON file
         const orders: Order[] = await Promise.all(
             listResponse.Contents.filter(obj => obj.Key?.endsWith('.json')).map(async (obj) => {
-                const getCommand = new GetObjectCommand({
-                    Bucket: process.env.R2_BUCKET_NAME,
-                    Key: obj.Key,
-                });
+                try {
+                    const getCommand = new GetObjectCommand({
+                        Bucket: process.env.R2_BUCKET_NAME,
+                        Key: obj.Key,
+                    });
 
-                const response = await r2.send(getCommand);
-                const bodyString = await response.Body?.transformToString();
+                    const response = await r2.send(getCommand);
+                    const bodyString = await response.Body?.transformToString();
 
-                if (bodyString) {
-                    const rawOrder = JSON.parse(bodyString);
-                    // Normalize order to handle legacy data without status field
-                    return normalizeOrder(rawOrder);
+                    if (bodyString) {
+                        const rawOrder = JSON.parse(bodyString);
+                        // Normalize order to handle legacy data without status field
+                        return normalizeOrder(rawOrder);
+                    }
+                    return null;
+                } catch (error) {
+                    // Skip files that don't exist or have errors
+                    console.warn(`Skipping order file ${obj.Key}:`, error);
+                    return null;
                 }
-                return null;
             })
         ).then(results => results.filter((order): order is Order => order !== null));
 
