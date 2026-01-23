@@ -45,8 +45,8 @@ function LoginForm() {
                 setError("Invalid email or password. Please try again.");
                 setIsLoading(false);
             } else if (result?.ok) {
-                router.push("/");
-                router.refresh();
+                // Use window.location for hard redirect to ensure session is properly loaded
+                window.location.href = "/";
             }
         } catch {
             setError("An unexpected error occurred. Please try again.");
