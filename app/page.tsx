@@ -5,6 +5,7 @@ import Image from "next/image";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Order, OrderStatus, EmailStatus } from "./types/order";
+import { useRefresh } from "./context/RefreshContext";
 
 // Helper function to convert R2 URL to proxy URL
 const getProxyImageUrl = (r2Url: string) => {
@@ -116,13 +117,7 @@ const AlertCircleIcon = () => (
   </svg>
 );
 
-const LogoutIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-    <polyline points="16 17 21 12 16 7" />
-    <line x1="21" x2="9" y1="12" y2="12" />
-  </svg>
-);
+
 
 // Confirmation Dialog Component
 function ConfirmDialog({
@@ -581,22 +576,11 @@ export default function OrderDashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedEmailStatus, setSelectedEmailStatus] = useState<string>("all");
-
-  // Handle logout
-  const handleLogout = async () => {
-    await signOut({ redirect: false });
-    router.push("/login");
-  };
-
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (sessionStatus === "unauthenticated") {
-      router.push("/login");
-    }
-  }, [sessionStatus, router]);
+  const { setRefreshHandler, setIsRefreshing } = useRefresh();
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
+    setIsRefreshing(true);
     setError(null);
     try {
       const response = await fetch("/api/orders");
@@ -612,8 +596,15 @@ export default function OrderDashboard() {
       setError("Failed to connect to the server");
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
-  }, []);
+  }, [setIsRefreshing]);
+
+  // Register refresh handler
+  useEffect(() => {
+    setRefreshHandler(fetchOrders);
+    return () => setRefreshHandler(null);
+  }, [fetchOrders, setRefreshHandler]);
 
   useEffect(() => {
     fetchOrders();
@@ -849,51 +840,7 @@ export default function OrderDashboard() {
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-[var(--background)]/80 backdrop-blur-xl border-b border-[var(--card-border)]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <Image
-                src="/tedx-logo.png"
-                alt="TEDx Logo"
-                width={100}
-                height={28}
-                className="h-7 w-auto"
-                priority
-              />
-              <div className="hidden sm:block h-6 w-px bg-[var(--card-border)]" />
-              <h1 className="hidden sm:block text-lg font-semibold text-white">Order Dashboard</h1>
-            </div>
-            <div className="flex items-center gap-3">
-              {/* User Info */}
-              {session?.user?.email && (
-                <span className="hidden md:block text-sm text-zinc-400">
-                  {session.user.email}
-                </span>
-              )}
-              {/* Refresh Button */}
-              <button
-                onClick={fetchOrders}
-                disabled={loading}
-                className="flex items-center gap-2 px-4 py-2 bg-[var(--tedx-red)] hover:bg-[var(--tedx-red-dark)] disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
-              >
-                <RefreshIcon className={loading ? "animate-spin" : ""} />
-                <span className="hidden sm:inline">Refresh</span>
-              </button>
-              {/* Logout Button */}
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg font-medium transition-colors"
-                title="Sign out"
-              >
-                <LogoutIcon />
-                <span className="hidden sm:inline">Logout</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -903,7 +850,7 @@ export default function OrderDashboard() {
           <StatsCard title="Accepted" value={acceptedCount} icon={<CheckIcon />} />
           <StatsCard title="Pending" value={pendingCount} icon={<PackageIcon />} />
           <StatsCard title="Rejected" value={rejectedCount} icon={<XCircleIcon />} />
-          <StatsCard title="Accepted Revenue" value={formatRevenue(totalRevenue)} icon={<CreditCardIcon />} />
+          <StatsCard title="Revenue" value={formatRevenue(totalRevenue)} icon={<CreditCardIcon />} />
           <StatsCard title="Showing" value={filteredOrders.length} icon={<FilterIcon />} />
         </div>
 
