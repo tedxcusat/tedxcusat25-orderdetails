@@ -23,7 +23,7 @@ export default function Navbar() {
 
   const links = [
     { name: "Orders", href: "/" },
-    { name: "Coupons", href: "/coupons" },
+    { name: "Affiliations", href: "/referrals" },
     { name: "Leaderboard", href: "/leaderboard" },
   ];
 
@@ -51,8 +51,8 @@ export default function Navbar() {
                   key={link.href}
                   href={link.href}
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${pathname === link.href
-                      ? "bg-zinc-800 text-white"
-                      : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+                    ? "bg-zinc-800 text-white"
+                    : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
                     }`}
                 >
                   {link.name}
