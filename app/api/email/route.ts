@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
         const logoUrl = process.env.EMAIL_LOGO_URL || 'https://i.postimg.cc/1thNxGhW/logo-white.png';
 
         const mailOptions = {
-            from: `"TEDx Merch Store" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+            from: `"TEDx Merch Store" ${process.env.SMTP_FROM || process.env.SMTP_USER}`,
             to: order.customer.email,
             subject: `Order Confirmed - #${order.orderId.toUpperCase()} | TEDx Merch Store`,
             html: getAcceptanceEmailHTML(order, logoUrl),
