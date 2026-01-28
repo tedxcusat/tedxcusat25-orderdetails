@@ -117,6 +117,15 @@ const AlertCircleIcon = () => (
   </svg>
 );
 
+const DownloadIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="7 10 12 15 17 10" />
+    <line x1="12" x2="12" y1="15" y2="3" />
+  </svg>
+);
+
+
 
 
 // Confirmation Dialog Component
@@ -790,6 +799,38 @@ export default function OrderDashboard() {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      // Dynamically import xlsx to avoid SSR issues
+      const XLSX = await import("xlsx");
+
+      const exportData = filteredOrders.map(order => ({
+        "Order ID": order.orderId,
+        "Customer Name": order.customer.name,
+        "Email": order.customer.email,
+        "Phone": order.customer.phone,
+        "Product": order.product.name,
+        "Size": order.product.size,
+        "Price": order.product.price,
+        "Status": order.status,
+        "Transaction ID": order.payment.transactionId,
+        "Address": order.customer.address,
+        "Date": new Date(order.timestamp).toLocaleString("en-IN"),
+        "Email Status": order.email?.status || "Not Sent",
+        "Screenshot URL": order.payment.screenshotUrl,
+        "Referral Code": order.payment.screenshotUrl.includes('ref=') ? order.payment.screenshotUrl.split('ref=')[1] : 'N/A' // Basic extraction if applicable, or just generic
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
+      XLSX.writeFile(workbook, "orders.xlsx");
+    } catch (err) {
+      console.error("Export failed:", err);
+      alert("Failed to export orders");
+    }
+  };
+
   const products = Array.from(new Set(orders.map((o) => o.product.id)));
   const sizes = Array.from(new Set(orders.map((o) => o.product.size)));
 
@@ -857,17 +898,27 @@ export default function OrderDashboard() {
         {/* Filters */}
         <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl p-4 mb-8">
           <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1 relative">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]">
-                <SearchIcon />
+            <div className="flex flex-col md:flex-row gap-4 flex-1">
+              <div className="relative flex-1">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]">
+                  <SearchIcon />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search by name, phone, order ID, or transaction ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-zinc-900 border border-[var(--card-border)] rounded-lg text-white placeholder-[var(--muted)] focus:outline-none focus:border-[var(--tedx-red)] transition-colors"
+                />
               </div>
-              <input
-                type="text"
-                placeholder="Search by name, phone, order ID, or transaction ID..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-zinc-900 border border-[var(--card-border)] rounded-lg text-white placeholder-[var(--muted)] focus:outline-none focus:border-[var(--tedx-red)] transition-colors"
-              />
+              <button
+                onClick={handleExport}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                title="Export to Excel"
+              >
+                <DownloadIcon />
+                Export
+              </button>
             </div>
 
             <div className="relative">
