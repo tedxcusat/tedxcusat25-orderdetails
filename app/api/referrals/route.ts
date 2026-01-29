@@ -42,6 +42,8 @@ export async function POST(req: NextRequest) {
         dept,
         phone,
       },
+      discountValue: body.discountValue || 0,
+      discountType: body.discountType || "fixed",
       createdAt,
     };
 

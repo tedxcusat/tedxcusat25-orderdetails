@@ -11,6 +11,8 @@ interface Referral {
     dept: string;
     phone: string;
   };
+  discountValue?: number;
+  discountType?: "fixed" | "percentage";
   createdAt: string;
 }
 
@@ -20,6 +22,8 @@ export default function ReferralsPage() {
     name: "",
     dept: "",
     phone: "",
+    discountValue: "",
+    discountType: "fixed",
   });
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
@@ -77,7 +81,7 @@ export default function ReferralsPage() {
 
       if (data.success) {
         setNewReferral({ code: data.code, url: data.url });
-        setFormData({ name: "", dept: "", phone: "" });
+        setFormData({ name: "", dept: "", phone: "", discountValue: "", discountType: "fixed" });
         fetchReferrals(); // Refresh list
       } else {
         setGenerateError(data.message || "Failed to generate code");
@@ -197,6 +201,42 @@ export default function ReferralsPage() {
                   />
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-400 mb-1.5 uppercase tracking-wider">Discount Type</label>
+                    <div className="relative">
+                      <select
+                        name="discountType"
+                        value={formData.discountType}
+                        onChange={(e) => setFormData({ ...formData, discountType: e.target.value })}
+                        className="w-full bg-black/50 border border-zinc-700 rounded-lg px-4 py-3 text-sm focus:border-red-600 focus:outline-none transition-colors appearance-none"
+                      >
+                        <option value="fixed">Fixed (₹)</option>
+                        <option value="percentage">Percentage (%)</option>
+                      </select>
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-400 mb-1.5 uppercase tracking-wider">Value</label>
+                    <input
+                      type="number"
+                      name="discountValue"
+                      value={formData.discountValue}
+                      onChange={handleChange}
+                      required
+                      min="0"
+                      max={formData.discountType === "fixed" ? "749" : "100"}
+                      className="w-full bg-black/50 border border-zinc-700 rounded-lg px-4 py-3 text-sm focus:border-red-600 focus:outline-none transition-colors"
+                      placeholder={formData.discountType === "fixed" ? "Amount" : "Percent"}
+                    />
+                  </div>
+                </div>
+
                 <button
                   type="submit"
                   disabled={isGenerating}
@@ -243,7 +283,14 @@ export default function ReferralsPage() {
                         </div>
                         <div className="min-w-0">
                           <h3 className="font-bold text-white truncate">{ref.referrer.name}</h3>
-                          <p className="text-xs text-zinc-500 truncate">{ref.referrer.dept} • {ref.referrer.phone}</p>
+                          <div className="flex items-center gap-2 text-xs text-zinc-500">
+                            <span className="truncate">{ref.referrer.dept} • {ref.referrer.phone}</span>
+                            {ref.discountValue ? (
+                              <span className="bg-zinc-800 text-zinc-300 px-1.5 py-0.5 rounded border border-zinc-700">
+                                {ref.discountType === "percentage" ? `${ref.discountValue}% OFF` : `₹${ref.discountValue} OFF`}
+                              </span>
+                            ) : null}
+                          </div>
                         </div>
                       </div>
 

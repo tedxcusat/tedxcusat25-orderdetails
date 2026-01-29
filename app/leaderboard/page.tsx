@@ -9,6 +9,7 @@ interface LeaderboardEntry {
   name: string;
   dept: string;
   count: number;
+  discount?: { value: number; type: string };
 }
 
 export default function LeaderboardPage() {
@@ -23,6 +24,18 @@ export default function LeaderboardPage() {
 
         if (data.success && data.orders) {
           const orders: Order[] = data.orders;
+
+          // Fetch referrals for discount info
+          const refRes = await fetch("/api/referrals");
+          const refData = await refRes.json();
+          const discountMap: Record<string, { value: number; type: string }> = {};
+          if (refData.success && refData.referrals) {
+            refData.referrals.forEach((r: any) => {
+              if (r.discountValue) {
+                discountMap[r.referrer.name] = { value: r.discountValue, type: r.discountType };
+              }
+            });
+          }
 
           // 1. Filter Accepted Orders with Referrals
           const referralOrders = orders.filter(
@@ -48,6 +61,7 @@ export default function LeaderboardPage() {
               name,
               dept: data.dept,
               count: data.count,
+              discount: discountMap[name],
             }))
             .sort((a, b) => b.count - a.count)
             .map((entry, index) => ({
@@ -119,7 +133,14 @@ export default function LeaderboardPage() {
                         }`}>
                         {entry.name}
                       </h3>
-                      <p className="text-sm text-[var(--muted)]">{entry.dept}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-[var(--muted)]">{entry.dept}</p>
+                        {entry.discount ? (
+                          <span className="text-xs bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded border border-zinc-700">
+                            {entry.discount.type === 'percentage' ? `${entry.discount.value}%` : `₹${entry.discount.value}`}
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
 
